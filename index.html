@@ -109,20 +109,10 @@ const defaultData = [
 { id: 8, date: "2026-04-04", amount: 10000, category: "Savings", type: "expense" }
 ];
 
-/* ================= MOCK API ================= */
-function fetchTransactions() {
-return new Promise(resolve => {
-setTimeout(() => resolve(defaultData), 300);
-});
-}
-
-/* ================= MERGE LOGIC (NO DUPLICATE) ================= */
+/* ================= MERGE LOGIC ================= */
 let storedData = JSON.parse(localStorage.getItem("transactions")) || [];
-
-// Start from stored (source of truth)
 let transactions = [...storedData];
 
-// Add only new items from code
 defaultData.forEach(def => {
 if (!transactions.some(t => t.id === def.id)) {
 transactions.push(def);
@@ -203,11 +193,19 @@ expensesEl.innerHTML = `<h3>Expenses</h3><h2>₹ ${expenses}</h2>`;
 /* ================= INSIGHTS ================= */
 function updateInsights() {
 let categoryMap = {};
+let monthly = {};
 
 transactions.forEach(t => {
+
 if (t.type === "expense") {
 categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
 }
+
+const month = t.date.slice(0, 7);
+monthly[month] = monthly[month] || { income: 0, expense: 0 };
+
+if (t.type === "income") monthly[month].income += t.amount;
+else monthly[month].expense += t.amount;
 });
 
 let max = 0, category = "";
@@ -218,9 +216,33 @@ category = key;
 }
 }
 
-insightText.innerHTML = category
-? `Highest spending: ${category} (₹ ${max})`
-: "No data available";
+const months = Object.keys(monthly).sort();
+let comparisonText = "";
+
+if (months.length >= 2) {
+const last = monthly[months[months.length - 1]].expense;
+const prev = monthly[months[months.length - 2]].expense;
+
+const diff = last - prev;
+const percent = prev ? ((diff / prev) * 100).toFixed(1) : 0;
+
+if (diff > 0)
+comparisonText = `Spending increased by ${percent}% compared to last month`;
+else if (diff < 0)
+comparisonText = `Spending decreased by ${Math.abs(percent)}% compared to last month`;
+else
+comparisonText = `Spending remained the same as last month`;
+}
+
+let observation = max > 20000
+? "You are spending heavily in one category."
+: "Your spending is relatively balanced.";
+
+insightText.innerHTML = `
+${category ? `• Highest spending: <b>${category}</b> (₹ ${max})<br>` : ""}
+${comparisonText ? `• ${comparisonText}<br>` : ""}
+• ${observation}
+`;
 }
 
 /* ================= TABLE ================= */
@@ -338,11 +360,6 @@ renderCharts();
 }
 
 renderAll();
-
-/* MOCK API */
-fetchTransactions().then(() => {
-console.log("Mock API connected");
-});
 
 });
 </script>

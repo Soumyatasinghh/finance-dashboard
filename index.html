@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Finance Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+<div class="container">
+
+<h1>Finance Dashboard</h1>
+
+<div class="top-bar">
+<button id="themeToggle">🌙 Dark Mode</button>
+<button onclick="exportCSV()">Export CSV</button>
+<button onclick="exportJSON()">Export JSON</button>
+</div>
+
+<div class="role">
+<label>Role:</label>
+<select id="role">
+<option value="viewer">Viewer</option>
+<option value="admin">Admin</option>
+</select>
+</div>
+
+<div class="cards">
+<div class="card" id="balance"></div>
+<div class="card" id="income"></div>
+<div class="card" id="expenses"></div>
+</div>
+
+<div class="charts">
+<div class="card">
+<h2>Balance Trend</h2>
+<canvas id="lineChart"></canvas>
+</div>
+
+<div class="card">
+<h2>Spending Breakdown</h2>
+<canvas id="pieChart"></canvas>
+</div>
+</div>
+
+<div id="addSection" class="card hidden">
+<h2>Add Transaction</h2>
+<form id="form">
+<input type="date" id="date" required>
+<input type="number" id="amount" placeholder="Amount" required>
+<input type="text" id="category" placeholder="Category" required>
+<select id="type">
+<option value="expense">Expense</option>
+<option value="income">Income</option>
+</select>
+<button>Add</button>
+</form>
+</div>
+
+<div class="card">
+<h2>Insights</h2>
+<p id="insightText"></p>
+</div>
+
+<div class="filters">
+<input type="text" id="search" placeholder="Search transactions...">
+<select id="filterType">
+<option value="all">All</option>
+<option value="income">Income</option>
+<option value="expense">Expense</option>
+</select>
+</div>
+
+<div class="card">
+<h2>Transactions</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Category</th>
+<th>Amount</th>
+<th>Type</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+</div>
+
+<footer class="footer">
+<p>© 2026 Finance Dashboard | Built by Soumyata Singh</p>
+</footer>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+/* ================= DEFAULT DATA ================= */
+const defaultData = [
+{ id: 1, date: "2026-03-01", amount: 30000, category: "Salary", type: "income" },
+{ id: 2, date: "2026-03-20", amount: 20000, category: "Travel", type: "expense" },
+{ id: 3, date: "2026-04-01", amount: 30000, category: "Salary", type: "income" },
+{ id: 4, date: "2026-04-01", amount: 2000, category: "Grocery", type: "expense" },
+{ id: 5, date: "2026-04-03", amount: 2500, category: "Rent", type: "expense" },
+{ id: 6, date: "2026-04-05", amount: 5000, category: "Shopping", type: "expense" },
+{ id: 7, date: "2026-04-02", amount: 15000, category: "Insurance", type: "expense" },
+{ id: 8, date: "2026-04-04", amount: 10000, category: "Savings", type: "expense" }
+];
+
+/* ================= MOCK API ================= */
+function fetchTransactions() {
+return new Promise(resolve => {
+setTimeout(() => resolve(defaultData), 300);
+});
+}
+
+/* ================= MERGE LOGIC (NO DUPLICATE) ================= */
+let storedData = JSON.parse(localStorage.getItem("transactions")) || [];
+
+// Start from stored (source of truth)
+let transactions = [...storedData];
+
+// Add only new items from code
+defaultData.forEach(def => {
+if (!transactions.some(t => t.id === def.id)) {
+transactions.push(def);
+}
+});
+
+let role = "viewer";
+
+/* ================= EXPORT ================= */
+window.exportCSV = function() {
+let csv = "Date,Category,Amount,Type\n";
+transactions.forEach(t => {
+csv += `${t.date},${t.category},${t.amount},${t.type}\n`;
+});
+downloadFile(csv, "transactions.csv");
+};
+
+window.exportJSON = function() {
+downloadFile(JSON.stringify(transactions, null, 2), "transactions.json");
+};
+
+function downloadFile(data, filename) {
+const blob = new Blob([data]);
+const a = document.createElement("a");
+a.href = URL.createObjectURL(blob);
+a.download = filename;
+a.click();
+}
+
+/* ================= ELEMENTS ================= */
+const roleSelect = document.getElementById("role");
+const addSection = document.getElementById("addSection");
+const tableBody = document.getElementById("tableBody");
+const searchInput = document.getElementById("search");
+const filterType = document.getElementById("filterType");
+
+const balanceEl = document.getElementById("balance");
+const incomeEl = document.getElementById("income");
+const expensesEl = document.getElementById("expenses");
+const insightText = document.getElementById("insightText");
+const themeToggle = document.getElementById("themeToggle");
+
+/* ================= DARK MODE ================= */
+if (localStorage.getItem("theme") === "dark") {
+document.body.classList.add("dark");
+themeToggle.textContent = "☀️ Light Mode";
+}
+
+themeToggle.addEventListener("click", function () {
+document.body.classList.toggle("dark");
+localStorage.setItem("theme",
+document.body.classList.contains("dark") ? "dark" : "light");
+});
+
+/* ================= ROLE ================= */
+roleSelect.addEventListener("change", () => {
+role = roleSelect.value;
+addSection.classList.toggle("hidden", role !== "admin");
+renderTable();
+});
+
+/* ================= SUMMARY ================= */
+function updateSummary() {
+let income = 0, expenses = 0;
+
+transactions.forEach(t => {
+if (t.type === "income") income += t.amount;
+else expenses += t.amount;
+});
+
+const balance = income - expenses;
+
+balanceEl.innerHTML = `<h3>Balance</h3><h2>₹ ${balance}</h2>`;
+incomeEl.innerHTML = `<h3>Income</h3><h2>₹ ${income}</h2>`;
+expensesEl.innerHTML = `<h3>Expenses</h3><h2>₹ ${expenses}</h2>`;
+}
+
+/* ================= INSIGHTS ================= */
+function updateInsights() {
+let categoryMap = {};
+
+transactions.forEach(t => {
+if (t.type === "expense") {
+categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
+}
+});
+
+let max = 0, category = "";
+for (let key in categoryMap) {
+if (categoryMap[key] > max) {
+max = categoryMap[key];
+category = key;
+}
+}
+
+insightText.innerHTML = category
+? `Highest spending: ${category} (₹ ${max})`
+: "No data available";
+}
+
+/* ================= TABLE ================= */
+function renderTable() {
+tableBody.innerHTML = "";
+
+const search = searchInput.value.toLowerCase();
+const filter = filterType.value;
+
+const filtered = transactions.filter(t =>
+(t.category.toLowerCase().includes(search) ||
+t.type.toLowerCase().includes(search) ||
+t.date.includes(search)) &&
+(filter === "all" || t.type === filter)
+);
+
+if (filtered.length === 0) {
+tableBody.innerHTML = "<tr><td colspan='5'>No data</td></tr>";
+return;
+}
+
+filtered.forEach(t => {
+const row = document.createElement("tr");
+
+row.innerHTML = `
+<td>${t.date}</td>
+<td>${t.category}</td>
+<td>₹ ${t.amount}</td>
+<td>${t.type}</td>
+${role === "admin"
+? `<td><button onclick="deleteTx(${t.id})">Delete</button></td>`
+: "<td>-</td>"}
+`;
+
+tableBody.appendChild(row);
+});
+}
+
+/* ================= DELETE ================= */
+window.deleteTx = function(id) {
+transactions = transactions.filter(t => t.id !== id);
+saveData();
+renderAll();
+};
+
+/* ================= ADD ================= */
+document.getElementById("form").addEventListener("submit", function(e) {
+e.preventDefault();
+
+const newTx = {
+id: Date.now(),
+date: document.getElementById("date").value,
+amount: Number(document.getElementById("amount").value),
+category: document.getElementById("category").value,
+type: document.getElementById("type").value
+};
+
+transactions.unshift(newTx);
+saveData();
+this.reset();
+renderAll();
+});
+
+/* ================= STORAGE ================= */
+function saveData() {
+localStorage.setItem("transactions", JSON.stringify(transactions));
+}
+
+/* ================= CHARTS ================= */
+let lineChart, pieChart;
+
+function renderCharts() {
+
+if (lineChart) lineChart.destroy();
+if (pieChart) pieChart.destroy();
+
+lineChart = new Chart(document.getElementById("lineChart"), {
+type: "line",
+data: {
+labels: transactions.map(t => t.date),
+datasets: [{
+data: transactions.map(t =>
+t.type === "income" ? t.amount : -t.amount)
+}]
+}
+});
+
+const categoryMap = {};
+transactions.forEach(t => {
+if (t.type === "expense") {
+categoryMap[t.category] =
+(categoryMap[t.category] || 0) + t.amount;
+}
+});
+
+pieChart = new Chart(document.getElementById("pieChart"), {
+type: "pie",
+data: {
+labels: Object.keys(categoryMap),
+datasets: [{ data: Object.values(categoryMap) }]
+}
+});
+}
+
+/* ================= FILTER ================= */
+searchInput.addEventListener("input", renderTable);
+filterType.addEventListener("change", renderTable);
+
+/* ================= INIT ================= */
+function renderAll() {
+updateSummary();
+updateInsights();
+renderTable();
+renderCharts();
+}
+
+renderAll();
+
+/* MOCK API */
+fetchTransactions().then(() => {
+console.log("Mock API connected");
+});
+
+});
+</script>
+
+</body>
+</html>

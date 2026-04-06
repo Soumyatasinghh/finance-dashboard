@@ -37,6 +37,26 @@ This project allows users to track financial activity, analyze spending patterns
 
 ---
 
+### 🔍 Transaction Search
+
+* Implemented search functionality for:
+
+  * Category
+  * Transaction type
+  * Date
+* Allows users to quickly find specific transactions
+* Works dynamically with filtering
+
+---
+
+### 🔃 Transaction Sorting
+
+* Sorting is **not implemented**
+* This was intentionally kept simple to maintain clarity and avoid unnecessary complexity
+* Can be added as a future enhancement
+
+---
+
 ### 🔐 Role-Based UI
 
 * **Viewer**
@@ -60,7 +80,7 @@ Provides meaningful financial observations:
 
 ### 🧠 State Management
 
-Managed using plain JavaScript (no external libraries):
+Managed using **Vanilla JavaScript** (no external libraries):
 
 * Transactions data
 * Search and filter states
@@ -121,8 +141,15 @@ Efficient handling ensures smooth UI updates and data consistency.
 
 * **HTML5**
 * **CSS3 (Plain CSS + Animations)**
-* **JavaScript (Vanilla JS)**
+* **Vanilla JavaScript**
 * **Chart.js** (for data visualization)
+
+---
+
+## 🌐 Live Demo
+
+Deployed on Netlify:
+👉 *(Add your live project link here)*
 
 ---
 
@@ -164,6 +191,7 @@ No installation or dependencies required.
 ## 🚀 Future Improvements
 
 * Edit transaction feature
+* Transaction sorting
 * Backend/API integration
 * User authentication system
 * Advanced analytics and filters
@@ -173,5 +201,3 @@ No installation or dependencies required.
 ## 👨‍💻 Author
 
 **Soumyata Singh**
-
----

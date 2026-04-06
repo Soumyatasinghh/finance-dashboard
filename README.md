@@ -14,7 +14,7 @@ This project allows users to track financial activity, analyze spending patterns
   * **Total Balance**
   * **Total Income**
   * **Total Expenses**
-* Animated summary cards for better visual feedback
+* Summary cards for better visual feedback
 * **Balance Trend (Line Chart)** for time-based financial analysis
 * **Spending Breakdown (Pie Chart)** for category-wise insights
 
@@ -40,10 +40,9 @@ This project allows users to track financial activity, analyze spending patterns
 ### 🔐 Role-Based UI
 
 * **Viewer**
-
   * Can only view financial data
+   
 * **Admin**
-
   * Can add and delete transactions
 * Role switching is implemented via a dropdown (frontend simulation)
 
